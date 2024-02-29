@@ -45,15 +45,6 @@ css = """
 
 # Inject custom CSS with markdown
 st.markdown(css, unsafe_allow_html=True)
-# Configurar locale para pt_BR
-# Tente configurar o locale para Português do Brasil
-# try:
-#     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Padrão para sistemas baseados em UNIX/Linux
-# except locale.Error:
-#     try:
-#         locale.setlocale(locale.LC_ALL, 'pt_BR')  # Alternativa genérica
-#     except locale.Error:
-#         st.error("Não foi possível configurar o locale para Português do Brasil.")
 
 st.title("Parcelar Auto de Infração")
 num_max_parcelas = 0 
@@ -118,22 +109,19 @@ with st.expander("Preencher requerimento", expanded=True):
              "Desconto Concedido (metade)": [10, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0,0]
           }
         df_parcelas = pd.DataFrame(data)
-        # df_parcelas['Valor com Desconto'] = total_upf_reais * (1 - df_parcelas[coluna_desconto] / 100)
+    
         # Calcula o valor com desconto para cada parcela
         df_parcelas['Valor com Desconto'] = total_upf * (1 - df_parcelas[coluna_desconto] / 100)
 
         # Depois, para exibição ou outra necessidade, formate esses valores usando Babel
-        df_parcelas['Valor com Desconto Formatado'] = df_parcelas['Valor com Desconto'].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
         df_parcelas['Valor da Parcela'] = df_parcelas['Valor com Desconto'] / df_parcelas['Quantidade de Parcelas']
-        # df_parcelas['Desconto Concedido'] = total_upf_reais - df_parcelas['Valor com Desconto']
+   
         df_parcelas['Desconto Concedido'] = total_upf - df_parcelas['Valor com Desconto']
 
         # Aplica a formatação de moeda para exibição
         df_parcelas['Valor com Desconto Formatado'] = df_parcelas['Valor com Desconto'].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
-        df_parcelas['Desconto Concedido Formatado'] = df_parcelas['Desconto Concedido'].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
+                   
         # Formatação final para moeda
-        # for coluna in ['Valor com Desconto', 'Valor da Parcela', 'Desconto Concedido']:
-        #     df_parcelas[coluna] = df_parcelas[coluna].apply(lambda x: locale.currency(x, grouping=True))
         for coluna in ['Valor com Desconto', 'Valor da Parcela', 'Desconto Concedido']:
             df_parcelas[coluna] = df_parcelas[coluna].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
        # Limitando o DataFrame a um máximo de 30 linhas antes de exibir
@@ -143,6 +131,8 @@ with st.expander("Preencher requerimento", expanded=True):
         linha_branco = pd.DataFrame([['' for _ in range(len(df_parcelas.columns))]], columns=df_parcelas.columns)
         df_parcelas = pd.concat([df_parcelas, linha_branco], ignore_index=True)
         
+        # df_parcelas.rename(columns={'Quantidade de Parcelas': 'Qtd Parcelas'}, inplace=True)
+        df_parcelas = df_parcelas[['Quantidade de Parcelas', 'Desconto Concedido', 'Valor com Desconto', 'Valor da Parcela']]
         gb = GridOptionsBuilder.from_dataframe(df_parcelas)
 
         # Ocultar colunas "Desconto Concedido (Integral)" e "Desconto Concedido (metade)"
@@ -238,7 +228,7 @@ def create_pdf(nome_completo, cpf, endereco, municipio, N_auto, data_inicio, df)
     texto_requerimento = (f"  Eu, {nome_completo}, brasileiro(a), portador(a) do CPF Nº {cpf}, "
                           f"domiciliado(a) no endereço {endereco}, município de: {municipio} - RO, "
                           "venho por meio deste instrumento de requerimento, requerer o parcelamento do valor da MULTA aplicada nos autos nº "
-                          f"{N_auto}, no valores descriminados nas parcelas e vencimentos abaixo relacionados:")
+                          f"{N_auto}, no valores discriminados nas parcelas e vencimentos abaixo relacionados:")
     pdf.multi_cell(0, 10, texto_requerimento)
     pdf.ln(5)
 
