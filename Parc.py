@@ -45,12 +45,14 @@ css = """
 # Inject custom CSS with markdown
 st.markdown(css, unsafe_allow_html=True)
 # Configurar locale para pt_BR
+# Tente configurar o locale para Português do Brasil
 try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Padrão para sistemas baseados em UNIX/Linux
 except locale.Error:
-    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')  # Alternativa para Windows
-except Exception as e:
-    st.error(f"Erro ao configurar o locale: {e}")
+    try:
+        locale.setlocale(locale.LC_ALL, 'pt_BR')  # Alternativa genérica
+    except locale.Error:
+        st.error("Não foi possível configurar o locale para Português do Brasil.")
 st.title("Parcelar Auto de Infração")
 num_max_parcelas = 0 
 data_inicio = st.date_input("Data do requerimento", datetime.today())
