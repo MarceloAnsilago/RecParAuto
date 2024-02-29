@@ -6,6 +6,7 @@ from datetime import datetime
 from fpdf import FPDF
 import base64
 from io import BytesIO
+from babel.numbers import format_currency
 
 # CSS to inject contained in a string
 css = """
@@ -46,13 +47,14 @@ css = """
 st.markdown(css, unsafe_allow_html=True)
 # Configurar locale para pt_BR
 # Tente configurar o locale para Português do Brasil
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Padrão para sistemas baseados em UNIX/Linux
-except locale.Error:
-    try:
-        locale.setlocale(locale.LC_ALL, 'pt_BR')  # Alternativa genérica
-    except locale.Error:
-        st.error("Não foi possível configurar o locale para Português do Brasil.")
+# try:
+#     locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')  # Padrão para sistemas baseados em UNIX/Linux
+# except locale.Error:
+#     try:
+#         locale.setlocale(locale.LC_ALL, 'pt_BR')  # Alternativa genérica
+#     except locale.Error:
+#         st.error("Não foi possível configurar o locale para Português do Brasil.")
+
 st.title("Parcelar Auto de Infração")
 num_max_parcelas = 0 
 data_inicio = st.date_input("Data do requerimento", datetime.today())
@@ -82,8 +84,12 @@ with st.expander("Preencher requerimento", expanded=True):
     try:
         valor_upf_float = float(valor_upf.replace(",", "."))
         total_upf = n_animais * qtd_upf_por_animal * valor_upf_float
-        total_upf_reais = converter_valor_para_float(locale.currency(total_upf, grouping=True))
-        st.metric(label="Valor do Auto", value=locale.currency(total_upf, grouping=True))
+        # total_upf_reais = converter_valor_para_float(locale.currency(total_upf, grouping=True))
+        total_upf_reais = format_currency(total_upf, 'BRL', locale='pt_BR')
+
+        # st.metric(label="Valor do Auto", value=locale.currency(total_upf, grouping=True))
+        valor_formatado = format_currency(total_upf, 'BRL', locale='pt_BR')
+        st.metric(label="Valor do Auto", value=valor_formatado)
     except ValueError:
         st.error("Por favor, insira um número válido para o Valor da UPF.")
         total_upf_reais = 0
@@ -103,20 +109,33 @@ with st.expander("Preencher requerimento", expanded=True):
 
     if num_max_parcelas > 0:
         parcelas = list(range(1, num_max_parcelas + 1))
-        valores_iniciais = [locale.currency(total_upf, grouping=True) for _ in range(num_max_parcelas)]
+        # valores_iniciais = [locale.currency(total_upf, grouping=True) for _ in range(num_max_parcelas)]
+        valores_iniciais = [format_currency(total_upf, 'BRL', locale='pt_BR') for _ in range(num_max_parcelas)]
+
         data = {
              "Quantidade de Parcelas": range(1, 32),
              "Desconto Concedido (Integral)": [20, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25, 0,0],
              "Desconto Concedido (metade)": [10, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0,0]
           }
         df_parcelas = pd.DataFrame(data)
-        df_parcelas['Valor com Desconto'] = total_upf_reais * (1 - df_parcelas[coluna_desconto] / 100)
+        # df_parcelas['Valor com Desconto'] = total_upf_reais * (1 - df_parcelas[coluna_desconto] / 100)
+        # Calcula o valor com desconto para cada parcela
+        df_parcelas['Valor com Desconto'] = total_upf * (1 - df_parcelas[coluna_desconto] / 100)
+
+        # Depois, para exibição ou outra necessidade, formate esses valores usando Babel
+        df_parcelas['Valor com Desconto Formatado'] = df_parcelas['Valor com Desconto'].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
         df_parcelas['Valor da Parcela'] = df_parcelas['Valor com Desconto'] / df_parcelas['Quantidade de Parcelas']
-        df_parcelas['Desconto Concedido'] = total_upf_reais - df_parcelas['Valor com Desconto']
-        
+        # df_parcelas['Desconto Concedido'] = total_upf_reais - df_parcelas['Valor com Desconto']
+        df_parcelas['Desconto Concedido'] = total_upf - df_parcelas['Valor com Desconto']
+
+        # Aplica a formatação de moeda para exibição
+        df_parcelas['Valor com Desconto Formatado'] = df_parcelas['Valor com Desconto'].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
+        df_parcelas['Desconto Concedido Formatado'] = df_parcelas['Desconto Concedido'].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
         # Formatação final para moeda
+        # for coluna in ['Valor com Desconto', 'Valor da Parcela', 'Desconto Concedido']:
+        #     df_parcelas[coluna] = df_parcelas[coluna].apply(lambda x: locale.currency(x, grouping=True))
         for coluna in ['Valor com Desconto', 'Valor da Parcela', 'Desconto Concedido']:
-            df_parcelas[coluna] = df_parcelas[coluna].apply(lambda x: locale.currency(x, grouping=True))
+            df_parcelas[coluna] = df_parcelas[coluna].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
        # Limitando o DataFrame a um máximo de 30 linhas antes de exibir
        
         df_parcelas = df_parcelas.head(num_max_parcelas)
