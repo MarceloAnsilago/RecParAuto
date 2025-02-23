@@ -336,7 +336,7 @@ with tabs[0]:
         </head>
         <body>
             <div class="container">
-                <h2>Requerimento para Parcelamento de Auto de Infração</h2>
+                <h2>Requerimento para Parcelamento de Auto de Infração - Emitido pela Agência IDARON</h2>
                 
                 <div class="texto-requerimento">
                     <p>{texto_requerimento}</p>
