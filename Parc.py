@@ -9,6 +9,9 @@ from io import BytesIO
 from babel.numbers import format_currency
 import streamlit.components.v1 as components  # Para exibir HTML embutido
 
+st.set_page_config(page_title="Parcelar Auto de Infração", page_icon=":page_facing_up:")
+
+
 # ================================
 # CSS Global
 # ================================
@@ -43,8 +46,7 @@ css = """
     .stApp .main .block-container h1 {
         text-align: center;
     }
-
-    /* Oculta o botão de imprimir ao imprimir a página */
+    /* Oculta o botão de imprimir ao imprimir */
     @media print {
         .no-print {
             display: none !important;
@@ -55,11 +57,13 @@ css = """
 st.markdown(css, unsafe_allow_html=True)
 
 # ================================
-# Título Principal acima das abas
+# Título Principal (acima das abas)
 # ================================
 st.title("Parcelar Auto de Infração")
 
+# ================================
 # Cria as abas
+# ================================
 tabs = st.tabs(["Preencher Requerimento", "Tabela de Descontos"])
 
 # --------------------------------
@@ -79,7 +83,7 @@ with tabs[0]:
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            valor_upf = st.text_input("Valor da UPF:", value="113,61")  # Valor padrão
+            valor_upf = st.text_input("Valor da UPF:", value="119,14")  # Valor padrão
         with col2:
             qtd_upf_por_animal = st.number_input("Qtd UPF por animal:", min_value=0.0, step=0.5, value=2.5)
         with col3:
@@ -100,11 +104,15 @@ with tabs[0]:
             st.error("Por favor, insira um número válido para o Valor da UPF.")
             total_upf = 0
 
+        # ================================
         # Definição dos Percentuais de Desconto
+        # ================================
         desconto_integral_percent = 20
         desconto_metade_percent = 10
 
+        # ================================
         # Opções do Radio (apenas descrições)
+        # ================================
         opcao_sim = "Sim (Desconto de 20% pra uma parcela)"
         opcao_nao = "Não (Desconto de 10% pra uma parcela)"
         prazo_defesa_escolhido = st.radio("No prazo de defesa até 30 dias?", (opcao_sim, opcao_nao))
@@ -114,7 +122,9 @@ with tabs[0]:
         else:
             coluna_desconto = "Desconto Concedido (metade)"
 
+        # ================================
         # Cálculo do valor mínimo por parcela e número máximo de parcelas
+        # ================================
         if valor_upf_float > 0:
             min_valor_parcela = qtd_upf_por_parcela * valor_upf_float
         else:
@@ -131,21 +141,24 @@ with tabs[0]:
         else:
             st.write(f"O valor total é menor que o mínimo exigido para uma parcela: R$ {min_valor_parcela:.2f}.")
 
+        # ================================
         # Tabela de Descontos / Parcelas (AG Grid)
+        # ================================
         if num_max_parcelas > 0:
             data_dict = {
                 "Quantidade de Parcelas": list(range(1, 32)),
                 "Desconto Concedido (Integral)": [20, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25, 0, 0],
                 "Desconto Concedido (metade)": [10, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0, 0]
             }
-            # Garante que ambas as listas tenham 31 elementos
             if len(data_dict["Desconto Concedido (metade)"]) < len(data_dict["Quantidade de Parcelas"]):
                 data_dict["Desconto Concedido (metade)"].append(0)
             
             df_descontos = pd.DataFrame(data_dict)
+            # Adiciona a coluna de desconto percentual usada (como string com %)
+            df_descontos['Desconto (%)'] = df_descontos[coluna_desconto].apply(lambda x: f"{x}%")
             
             df_descontos['Valor com Desconto'] = total_upf * (1 - df_descontos[coluna_desconto] / 100)
-            df_descontos['Valor da Parcela'] = df_descontos['Valor com Desconto'] / df_descontos['Quantidade de Parcelas']
+            df_descontos['Valor da Parcela'] = df_descontos['Valor with Desconto'] = df_descontos['Valor com Desconto'] / df_descontos['Quantidade de Parcelas']
             df_descontos['Desconto Concedido'] = total_upf - df_descontos['Valor com Desconto']
             df_descontos['Valor com Desconto Formatado'] = df_descontos['Valor com Desconto'].apply(
                 lambda x: format_currency(x, 'BRL', locale='pt_BR')
@@ -154,12 +167,15 @@ with tabs[0]:
                 df_descontos[col] = df_descontos[col].apply(lambda x: format_currency(x, 'BRL', locale='pt_BR'))
             
             df_parcelas = df_descontos.head(num_max_parcelas)
+            # Adiciona uma linha em branco para evitar corte da última linha
             linha_branco = pd.DataFrame([['' for _ in range(len(df_parcelas.columns))]], columns=df_parcelas.columns)
             df_parcelas = pd.concat([df_parcelas, linha_branco], ignore_index=True)
-            df_parcelas = df_parcelas[['Quantidade de Parcelas', 'Desconto Concedido', 'Valor com Desconto', 'Valor da Parcela']]
+            # Seleciona as colunas para exibição, incluindo a nova coluna "Desconto (%)"
+            df_parcelas = df_parcelas[['Quantidade de Parcelas', 'Desconto (%)', 'Desconto Concedido', 'Valor com Desconto', 'Valor da Parcela']]
             
             gb = GridOptionsBuilder.from_dataframe(df_parcelas)
             gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc='sum', editable=True)
+            # Não precisamos mostrar as colunas originais de desconto, pois agora temos "Desconto (%)"
             gb.configure_column("Desconto Concedido (Integral)", hide=True)
             gb.configure_column("Desconto Concedido (metade)", hide=True)
             gb.configure_selection('single', use_checkbox=True, groupSelectsChildren=True)
@@ -211,7 +227,9 @@ with tabs[0]:
                 with c2:
                     st.write("Marque a primeira coluna com a quantidade de parcelas escolhidas.")
 
+    # ================================
     # Exibir o Requerimento (HTML)
+    # ================================
     if 'parcelas_selecionadas_df' not in locals():
         parcelas_selecionadas_df = pd.DataFrame(columns=['Parcela', 'Valor da Parcela', 'Data de Vencimento']).set_index('Parcela')
 
@@ -223,37 +241,33 @@ with tabs[0]:
         """
         
         if total_upf > 0 and num_max_parcelas > 0:
-            num_parcelas_selecionadas = int(parcelas_selecionadas_df.index.max()) if not parcelas_selecionadas_df.empty else 0
-            if num_parcelas_selecionadas > 0:
-                df_descontos = pd.DataFrame({
-                    "Quantidade de Parcelas": list(range(1, 32)),
-                    "Desconto Concedido (Integral)": [20, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25, 0, 0],
-                    "Desconto Concedido (metade)": [10, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0, 0]
-                })
-                if len(df_descontos["Desconto Concedido (metade)"]) < len(df_descontos["Quantidade de Parcelas"]):
-                    df_descontos["Desconto Concedido (metade)"].append(0)
-
-                discount_row = df_descontos[df_descontos["Quantidade de Parcelas"] == num_parcelas_selecionadas].iloc[0]
-                if prazo_defesa_escolhido == opcao_sim:
-                    discount_percentage = discount_row["Desconto Concedido (Integral)"]
-                else:
-                    discount_percentage = discount_row["Desconto Concedido (metade)"]
-                valor_com_desconto = total_upf * (1 - discount_percentage / 100)
-                valor_parcela_final = valor_com_desconto / num_parcelas_selecionadas
-                
-                texto_parcelamento = (
-                    f"O requerente solicitou o parcelamento em {num_parcelas_selecionadas} vezes, conforme a tabela de descontos, "
-                    f"o que lhe confere o direito a um desconto de {discount_percentage}% sobre o valor original. "
-                    f"Assim, o valor total, que originalmente era de {format_currency(total_upf, 'BRL', locale='pt_BR')}, "
-                    f"passará a ser de {format_currency(valor_com_desconto, 'BRL', locale='pt_BR')}, "
-                    f"distribuído em {num_parcelas_selecionadas} parcelas de {format_currency(valor_parcela_final, 'BRL', locale='pt_BR')} cada."
-                )
+            num_parcelas_selecionadas = int(parcelas_selecionadas_df.index.max())
+            df_descontos = pd.DataFrame({
+                "Quantidade de Parcelas": list(range(1, 32)),
+                "Desconto Concedido (Integral)": [20, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25, 0, 0],
+                "Desconto Concedido (metade)": [10, 6, 5.75, 5.5, 5.25, 5, 4.75, 4.5, 4.25, 4, 3.75, 3.5, 3.25, 3, 2.75, 2.5, 2.25, 2, 1.75, 1.5, 1.25, 1, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0, 0]
+            })
+            if len(df_descontos["Desconto Concedido (metade)"]) < len(df_descontos["Quantidade de Parcelas"]):
+                df_descontos["Desconto Concedido (metade)"].append(0)
+            
+            discount_row = df_descontos[df_descontos["Quantidade de Parcelas"] == num_parcelas_selecionadas].iloc[0]
+            if prazo_defesa_escolhido == opcao_sim:
+                discount_percentage = discount_row["Desconto Concedido (Integral)"]
             else:
-                texto_parcelamento = "Não foi selecionado o número de parcelas."
+                discount_percentage = discount_row["Desconto Concedido (metade)"]
+            valor_com_desconto = total_upf * (1 - discount_percentage / 100)
+            valor_parcela_final = valor_com_desconto / num_parcelas_selecionadas
+            
+            texto_parcelamento = (
+                f"O requerente solicitou o parcelamento em {num_parcelas_selecionadas} vezes, conforme a tabela de descontos, "
+                f"o que lhe confere o direito a um desconto de {discount_percentage}% sobre o valor original. "
+                f"Assim, o valor total, que originalmente era de {format_currency(total_upf, 'BRL', locale='pt_BR')}, "
+                f"passará a ser de {format_currency(valor_com_desconto, 'BRL', locale='pt_BR')}, "
+                f"distribuído em {num_parcelas_selecionadas} parcelas de {format_currency(valor_parcela_final, 'BRL', locale='pt_BR')} cada."
+            )
         else:
             texto_parcelamento = "Não é possível parcelar, pois o valor total é inferior ao mínimo exigido para uma parcela."
         
-        # Monta o HTML final com recuo nos parágrafos e numeração de páginas (CSS @page)
         html = f"""
         <!DOCTYPE html>
         <html lang="pt-BR">
@@ -313,18 +327,10 @@ with tabs[0]:
                     margin-top: 40px;
                     text-align: center;
                 }}
-                .no-print {{
-                    /* Oculta esse elemento ao imprimir */
-                }}
                 .print-button {{
                     display: block;
                     text-align: center;
                     margin-top: 20px;
-                }}
-                @media print {{
-                    .no-print {{
-                        display: none !important;
-                    }}
                 }}
             </style>
         </head>
@@ -356,14 +362,13 @@ with tabs[0]:
                         <td>{row['Data de Vencimento']}</td>
                     </tr>
             """
-        # Adicionando a frase "Segue assinado" e o nome + CPF
-        html += f"""
+        html += """
                 </table>
                 
                 <div class="signature">
                     <p>Segue assinado</p>
                     <p>___________________________</p>
-                    <p>{nome_completo} - CPF: {cpf}</p>
+                    <p>{nome} - CPF: {cpf}</p>
                 </div>
                 
                 <div class="print-button no-print">
@@ -372,7 +377,7 @@ with tabs[0]:
             </div>
         </body>
         </html>
-        """
+        """.replace("{nome}", nome_completo).replace("{cpf}", cpf)
         components.html(html, height=800, scrolling=True)
 
 # --------------------------------
