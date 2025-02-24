@@ -75,11 +75,12 @@ with tabs[0]:
 
     with st.expander("Preencher requerimento", expanded=True):
         st.subheader("Do Autuado")
-        nome_completo = st.text_input("Nome completo:")
-        cpf = st.text_input("N° do CPF:")
-        endereco = st.text_input("Endereço:")
-        municipio = st.text_input("Município:")
-        N_auto = st.text_input("Numero do Auto de Infração:")
+        nome_completo = st.text_input("Nome completo:", key="nome_completo")
+        cpf = st.text_input("N° do CPF:", key="cpf")
+        endereco = st.text_input("Endereço:", key="endereco")
+        municipio = st.text_input("Município:", key="municipio")
+        N_auto = st.text_input("Número do Auto de Infração:", key="N_auto")
+
 
         col1, col2, col3 = st.columns(3)
         with col1:
