@@ -300,7 +300,7 @@ with tabs[0]:
         if total_upf > 0 and num_max_parcelas > 0:
             texto_parcelamento = (
                 f"O requerente solicitou o parcelamento em {parcelas_selecionadas_df.shape[0]} vezes, conforme a tabela de descontos, "
-                f"o que lhe confere o direito a um desconto de {discount_percentage}% sobre o valor original. "
+                f"o que lhe confere o direito a um desconto de {discount_percentage}% sobre o valor inicial. "
                 f"Assim, o valor total, que originalmente era de {formatar_moeda_br(total_upf)}, "
                 f"passará a ser de {formatar_moeda_br(valor_com_desconto)}, "
                 f"distribuído em {parcelas_selecionadas_df.shape[0]} parcelas "
