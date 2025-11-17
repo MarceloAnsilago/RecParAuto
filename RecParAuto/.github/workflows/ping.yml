@@ -1,0 +1,16 @@
+name: Ping Aplicação
+
+on:
+  schedule:
+    - cron: "30 6 * * 1-5" # se segunda a sexta as 6:30 da manha
+
+  workflow_dispatch:  # Permite rodar manualmente
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Faz requisição HTTP para manter a aplicação ativa
+        run: |
+          curl -I https://recparauto-bljbyziokmzrpnxhpapny4.streamlit.app/
