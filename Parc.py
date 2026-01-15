@@ -153,7 +153,7 @@ with tabs[0]:
 
             colA, colB, colC = st.columns(3)
             with colA:
-                valor_upf = st.text_input("Valor da UPF:", value="119,14")
+                valor_upf = st.text_input("Valor da UPF:", value="124,46")
             with colB:
                 # MUDOU AQUI
                 qtd_upf_por_animal = st.number_input("Qtd UPF por animal/Auto:", min_value=0.0, step=0.5, value=2.5)
