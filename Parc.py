@@ -283,12 +283,15 @@ with tabs[0]:
 
             st.dataframe(tabela_para_exibir, use_container_width=True)
 
-            num_parcelas_selecionadas = st.slider(
-                "Quantidade de parcelas desejada",
-                min_value=1,
-                max_value=num_max_parcelas,
-                value=1
-            )
+            if num_max_parcelas > 1:
+                num_parcelas_selecionadas = st.slider(
+                    "Quantidade de parcelas desejada",
+                    min_value=1,
+                    max_value=num_max_parcelas,
+                    value=1
+                )
+            else:
+                num_parcelas_selecionadas = 1
 
             st.markdown(
                 "Use o controle acima para escolher o parcelamento que melhor atende o requerimento."
